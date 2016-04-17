@@ -21,6 +21,11 @@ public class Simulator implements Constants
 	private long avgArrivalInterval;
 	// Add member variables as needed
 
+    private long maxCPUTime;
+
+	private IO io;
+    private CPU cpu;
+
 	/**
 	 * Constructs a scheduling simulator with the given parameters.
 	 * @param memoryQueue			The memory queue to be used.
@@ -41,8 +46,13 @@ public class Simulator implements Constants
 		statistics = new Statistics();
 		eventQueue = new EventQueue();
 		memory = new Memory(memoryQueue, memorySize, statistics);
+
 		clock = 0;
 		// Add code as needed
+
+        this.maxCPUTime = maxCpuTime;
+        io = new IO(ioQueue,statistics);
+        cpu = new CPU(cpuQueue,statistics);
     }
 
     /**
@@ -130,7 +140,11 @@ public class Simulator implements Constants
 		// As long as there is enough memory, processes are moved from the memory queue to the cpu queue
 		while(p != null) {
 			
-			// TODO: Add this process to the CPU queue!
+			// TODO: update statistics
+
+            if(cpu.insertProcess(p)){
+                setProcessActive(p);
+            }
 			// Also add new events to the event queue if needed
 
 			// Since we haven't implemented the CPU and I/O device yet,
@@ -150,13 +164,30 @@ public class Simulator implements Constants
 	 * Simulates a process switch.
 	 */
 	private void switchProcess() {
-		// Incomplete
+        Process p = cpu.returnActiveProcess();
+        if(cpu.insertProcess(p)){
+            setProcessActive(p);
+        }
+        else{
+            Process pNew = cpu.updateActive();
+            setProcessActive(pNew);
+        }
+
+
+		// todo update statistics
 	}
 
 	/**
 	 * Ends the active process, and deallocates any resources allocated to it.
 	 */
 	private void endProcess() {
+        Process p = cpu.returnActiveProcess();
+        memory.processCompleted(p);
+        Process pNew = cpu.updateActive();
+        setProcessActive(pNew);
+
+
+        //todo update statistics
 		// Incomplete
 	}
 
@@ -165,7 +196,16 @@ public class Simulator implements Constants
 	 * perform an I/O operation.
 	 */
 	private void processIoRequest() {
-		// Incomplete
+        Process p = cpu.returnActiveProcess();
+        if(io.insertProcess(p)){
+            long endOfIOTime = p.getIOTime();
+            eventQueue.insertEvent(new Event(END_IO, endOfIOTime));
+        }
+        Process pNew = cpu.updateActive();
+        setProcessActive(pNew);
+
+
+        //todo update statistics
 	}
 
 	/**
@@ -173,8 +213,51 @@ public class Simulator implements Constants
 	 * is done with its I/O operation.
 	 */
 	private void endIoOperation() {
-		// Incomplete
+        Process[] processArray = io.returnActiveProcess();
+        if(processArray[1]!=null){
+            long endOfIOTime = processArray[1].getIOTime();
+            eventQueue.insertEvent(new Event(END_IO, endOfIOTime));
+        }
+
+        /** If the cpu has no processes in the queue, the new process becomes active. Must then add the correct events  */
+        if(cpu.insertProcess(processArray[0])){
+            setProcessActive(processArray[0]);
+        }
+        //todo update statistics
 	}
+
+
+    /**
+     * Takes the process and adds the correct event for its state in the eventQueue
+     * @param p
+     */
+    private void setProcessActive(Process p){
+
+        if(p==null){
+            return ;
+        }
+
+        long timeUntilNextIO = p.getTimeUntilNextIO();
+        long timeUntilProcessFinished = p.getcpuTimeNeeded();
+
+        int processType = p.getcpuTimeNeeded() < maxCPUTime ? END_PROCESS : SWITCH_PROCESS;
+        if(processType==END_PROCESS){
+            if(timeUntilNextIO < timeUntilProcessFinished){
+                eventQueue.insertEvent(new Event(IO_REQUEST ,clock+timeUntilNextIO));
+            }
+            else{
+                eventQueue.insertEvent(new Event(END_PROCESS ,clock+timeUntilProcessFinished));
+            }
+        }
+        else{
+            if(timeUntilNextIO < maxCPUTime){
+                eventQueue.insertEvent(new Event(IO_REQUEST ,clock+timeUntilNextIO));
+            }
+            else{
+                eventQueue.insertEvent(new Event(SWITCH_PROCESS ,clock+maxCPUTime));
+            }
+        }
+    }
 
 	/**
 	 * Reads a number from the an input reader.

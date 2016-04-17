@@ -96,6 +96,7 @@ public class Process implements Constants
     public void leftMemoryQueue(long clock) {
 		  timeSpentWaitingForMemory += clock - timeOfLastEvent;
 		  timeOfLastEvent = clock;
+          timeToNextIoOperation = clock + avgIoInterval;
     }
 
     /**
@@ -118,4 +119,20 @@ public class Process implements Constants
 	}
 
 	// Add more methods as needed
+
+    //todo finne ut hvor lang tid IO utføring skal ta, Martin: "Jeg har ikke sett noe sted i oppgaven hvor tiden er oppgitt"
+    public long getIOTime(){
+        return 0;
+    }
+
+
+
+
+    public long getTimeUntilNextIO(){
+        return timeToNextIoOperation;
+    }
+
+    public long getcpuTimeNeeded(){
+        return cpuTimeNeeded;
+    }
 }
