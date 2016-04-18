@@ -4,12 +4,23 @@
 public class CPU {
     
     private Process activeProcess;
+
+    public Queue getCpuQueue() {
+        return cpuQueue;
+    }
+
     private Queue cpuQueue;
     Statistics statistics;
 
     public CPU(Queue cpuQueue, Statistics statistics) {
         this.cpuQueue = cpuQueue;
         this.statistics = statistics;
+    }
+
+    public void largestQueueLength() {
+        if (cpuQueue.getQueueLength() > statistics.cpuQueueLargestLength) {
+            statistics.cpuQueueLargestLength = cpuQueue.getQueueLength();
+        }
     }
 
     public Process returnActiveProcess() {
@@ -23,6 +34,7 @@ public class CPU {
             return true;
         }
         cpuQueue.insert(process);
+        statistics.totalInCPUQueue ++;
         process.addedCpuQueue(clock);
         return false;
     }
@@ -34,6 +46,7 @@ public class CPU {
      */
     public Process updateActive(long clock, Gui gui) {
         if(cpuQueue.isEmpty()){
+            activeProcess = null;
             return null;
         }
         //Should it be removeNext or getNext? (Odd)

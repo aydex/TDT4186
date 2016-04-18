@@ -20,7 +20,7 @@ public class Statistics
     /** Variables not from skeleton-code */
     public long nofProcessSwitches = 0;
     public long nofProcessedIO = 0;
-    public long avgThroughput = 0;
+    public float avgThroughput = 0;
     public long totalProcessingTime = 0;
     public long fracOfCPUTimeProcessing = 0;
     public long totalWaitTime = 0;

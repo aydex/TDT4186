@@ -1,5 +1,4 @@
 import java.awt.*;
-import java.util.*;
 
 /**
  * This class contains data associated with processes,
@@ -31,7 +30,68 @@ public class Process implements Constants
 	private long timeSpentWaitingForMemory = 0;
 	/** The time that this process has spent waiting in the CPU queue */
 	private long timeSpentInReadyQueue = 0;
-	/** The time that this process has spent processing */
+
+    public static long getNextProcessId() {
+        return nextProcessId;
+    }
+
+    public static Font getFont() {
+        return font;
+    }
+
+    public long getProcessId() {
+        return processId;
+    }
+
+    public Color getColor() {
+        return color;
+    }
+
+    public long getCpuTimeNeeded() {
+        return cpuTimeNeeded;
+    }
+
+    public long getAvgIoInterval() {
+        return avgIoInterval;
+    }
+
+    public long getTimeToNextIoOperation() {
+        return timeToNextIoOperation;
+    }
+
+    public long getTimeSpentWaitingForMemory() {
+        return timeSpentWaitingForMemory;
+    }
+
+    public long getTimeSpentInReadyQueue() {
+        return timeSpentInReadyQueue;
+    }
+
+    public long getTimeSpentWaitingForIo() {
+        return timeSpentWaitingForIo;
+    }
+
+    public long getTimeSpentInIo() {
+        return timeSpentInIo;
+    }
+
+    public long getNofTimesInReadyQueue() {
+        return nofTimesInReadyQueue;
+    }
+
+    public long getNofTimesInIoQueue() {
+        return nofTimesInIoQueue;
+    }
+
+    public long getTimeOfLastEvent() {
+        return timeOfLastEvent;
+    }
+
+    public long getTimeSpentInCpu() {
+        return timeSpentInCpu;
+    }
+
+    /** The time that this process has spent processing */
     private long timeSpentInCpu = 0;
 	/** The time that this process has spent waiting in the I/O queue */
     private long timeSpentWaitingForIo = 0;
@@ -96,7 +156,7 @@ public class Process implements Constants
     public void leftMemoryQueue(long clock) {
 		  timeSpentWaitingForMemory += clock - timeOfLastEvent;
 		  timeOfLastEvent = clock;
-          timeToNextIoOperation = clock + avgIoInterval;
+          timeToNextIoOperation = avgIoInterval;
     }
 
     /**
@@ -137,7 +197,7 @@ public class Process implements Constants
 	public void leftCpuQueue(long clock){
 		timeSpentInReadyQueue += clock - timeOfLastEvent;
 		timeOfLastEvent = clock;
-		timeToNextIoOperation = clock + avgIoInterval;
+		timeToNextIoOperation = avgIoInterval;
 	}
 
 	public void leftIoQueue(long clock){
@@ -145,20 +205,23 @@ public class Process implements Constants
 		timeOfLastEvent = clock;
 	}
 
-	public void leftCpu(long clock){
+	public void leftCpu(long clock, Gui gui){
 		cpuTimeNeeded -= clock - timeOfLastEvent;
 		timeSpentInCpu += clock - timeOfLastEvent;
 		timeOfLastEvent = clock;
+        gui.setCpuActive(null);
 	}
 
-	public void leftIo(long clock){
+	public void leftIo(long clock, Gui gui){
 		timeSpentInIo += clock - timeOfLastEvent;
 		timeOfLastEvent = clock;
-	}
+        gui.setIoActive(null);
+    }
 
 	public void addedCpuQueue(long clock){
 		nofTimesInReadyQueue++;
 		timeOfLastEvent = clock;
+
 	}
 
 	public void addedIoQueue(long clock){

@@ -11,7 +11,12 @@ public class Simulator implements Constants
     private Memory memory;
 	/** Reference to the GUI interface */
 	private Gui gui;
-	/** Reference to the statistics collector */
+
+    public Statistics getStatistics() {
+        return statistics;
+    }
+
+    /** Reference to the statistics collector */
 	private Statistics statistics;
 	/** The global clock */
     private long clock;
@@ -78,6 +83,8 @@ public class Simulator implements Constants
 			clock = event.getTime();
 			// Let the memory unit and the GUI know that time has passed
 			memory.timePassed(timeDifference);
+            io.largestQueueLength();
+            cpu.largestQueueLength();
 			gui.timePassed(timeDifference);
 			// Deal with the event
 			if (clock < simulationLength) {
@@ -89,6 +96,21 @@ public class Simulator implements Constants
 
 		}
 		System.out.println("..done.");
+
+        statistics.avgThroughput = (float)statistics.nofCompletedProcesses*1000/(float)simulationLength;
+        for (int i = 0; i < cpu.getCpuQueue().getQueueLength(); i++) {
+            Process p = (Process) cpu.getCpuQueue().removeNext();
+            statistics.totalProcessingTime +=  p.getTimeSpentInCpu();
+            statistics.totalTimeSpentWaitingForMemory += p.getTimeSpentWaitingForMemory();
+            statistics.totalTimeSpentWaitingForCPU += p.getTimeSpentInReadyQueue();
+            statistics.totalTimeSpentWaitingForIO += p.getTimeSpentWaitingForIo();
+            statistics.totalTimeSpentInIO += p.getTimeSpentInIo();
+            statistics.totalTimeSpentProcessing += p.getTimeSpentInCpu();
+        }
+        statistics.fracOfCPUTimeProcessing = statistics.totalTimeSpentProcessing*100/simulationLength;
+        statistics.totalWaitTime = simulationLength - statistics.totalProcessingTime;
+        statistics.fracOfCPUTimeWaiting = statistics.totalWaitTime*100/simulationLength;
+
 		// End the simulation by printing out the required statistics
 		statistics.printReport(simulationLength);
 	}
@@ -101,18 +123,22 @@ public class Simulator implements Constants
 	private void processEvent(Event event) {
 		switch (event.getType()) {
 			case NEW_PROCESS:
+                statistics.nofCreatedProcesses++;
 				createProcess();
 				break;
 			case SWITCH_PROCESS:
+                statistics.nofProcessSwitches++;
 				switchProcess();
 				break;
 			case END_PROCESS:
+                statistics.nofCompletedProcesses++;
 				endProcess();
 				break;
 			case IO_REQUEST:
 				processIoRequest();
 				break;
 			case END_IO:
+                statistics.nofProcessedIO++;
 				endIoOperation();
 				break;
 		}
@@ -130,7 +156,6 @@ public class Simulator implements Constants
 		long nextArrivalTime = clock + 1 + (long)(2*Math.random()*avgArrivalInterval);
 		eventQueue.insertEvent(new Event(NEW_PROCESS, nextArrivalTime));
 		// Update statistics
-		statistics.nofCreatedProcesses++;
     }
 
 	/**
@@ -166,6 +191,9 @@ public class Simulator implements Constants
 	 */
 	private void switchProcess() {
         Process p = cpu.returnActiveProcess();
+		if (p != null) {
+			p.leftCpu(clock, gui);
+		}
         if(cpu.insertProcess(p, clock, gui)){
             setProcessActive(p);
         }
@@ -174,8 +202,6 @@ public class Simulator implements Constants
             setProcessActive(pNew);
         }
 
-
-		// todo update statistics
 	}
 
 	/**
@@ -184,13 +210,16 @@ public class Simulator implements Constants
 	private void endProcess() {
         Process p = cpu.returnActiveProcess();
         memory.processCompleted(p);
-		p.leftCpu(clock);
+		p.leftCpu(clock, gui);
+        statistics.totalProcessingTime += p.getTimeSpentInCpu();
+        statistics.totalTimeSpentWaitingForMemory += p.getTimeSpentWaitingForMemory();
+        statistics.totalTimeSpentWaitingForCPU += p.getTimeSpentInReadyQueue();
+        statistics.totalTimeSpentWaitingForIO += p.getTimeSpentWaitingForIo();
+        statistics.totalTimeSpentInIO += p.getTimeSpentInIo();
+        statistics.totalTimeSpentProcessing += p.getTimeSpentInCpu();
         Process pNew = cpu.updateActive(clock, gui);
         setProcessActive(pNew);
 
-
-        //todo update statistics
-		// Incomplete
 	}
 
 	/**
@@ -199,7 +228,7 @@ public class Simulator implements Constants
 	 */
 	private void processIoRequest() {
         Process p = cpu.returnActiveProcess();
-		p.leftCpu(clock);
+		p.leftCpu(clock, gui);
         if(io.insertProcess(p, clock, gui)){
             long endOfIOTime = clock + 1 + (long)(2*Math.random()*avgIoTime);
             eventQueue.insertEvent(new Event(END_IO, endOfIOTime));

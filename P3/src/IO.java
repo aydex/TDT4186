@@ -36,6 +36,7 @@ public class IO {
         }
         else{
             ioQueue.insert(p);
+            statistics.totalInIOQueue++;
             p.addedIoQueue(clock);
             return false;
         }
@@ -43,13 +44,7 @@ public class IO {
     }
 
 
-
-    /**
-     * This method is called when a discrete amount of time has passed.
-     * @param timePassed	The amount of time that has passed since the last call to this method.
-     */
-    public void timePassed(long timePassed) {
-        statistics.memoryQueueLengthTime += ioQueue.getQueueLength()*timePassed;
+    public void largestQueueLength() {
         if (ioQueue.getQueueLength() > statistics.ioQueueLargestLength) {
             statistics.ioQueueLargestLength = ioQueue.getQueueLength();
         }
@@ -61,7 +56,7 @@ public class IO {
      */
     public Process[] returnActiveProcess(long clock, Gui gui) {
         Process returnProcess = activeProcess;
-        returnProcess.leftIo(clock);
+        returnProcess.leftIo(clock, gui);
         activeProcess = null;
         if(!ioQueue.isEmpty()){
             activeProcess = (Process)ioQueue.removeNext();
