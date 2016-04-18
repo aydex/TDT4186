@@ -22,6 +22,7 @@ public class Simulator implements Constants
 	// Add member variables as needed
 
     private long maxCPUTime;
+	private long avgIoTime;
 
 	private IO io;
     private CPU cpu;
@@ -51,6 +52,7 @@ public class Simulator implements Constants
 		// Add code as needed
 
         this.maxCPUTime = maxCpuTime;
+		this.avgIoTime = avgIoTime;
         io = new IO(ioQueue,statistics);
         cpu = new CPU(cpuQueue,statistics);
     }
@@ -139,21 +141,20 @@ public class Simulator implements Constants
 		Process p = memory.checkMemory(clock);
 		// As long as there is enough memory, processes are moved from the memory queue to the cpu queue
 		while(p != null) {
-			
 			// TODO: update statistics
 
-            if(cpu.insertProcess(p)){
+            if(cpu.insertProcess(p, clock, gui)){
                 setProcessActive(p);
             }
 			// Also add new events to the event queue if needed
 
 			// Since we haven't implemented the CPU and I/O device yet,
-			// we let the process leave the system immediately, for now.
-			memory.processCompleted(p);
+			// we let the process leave the system immediately, for now. (Outdated)
+			//memory.processCompleted(p);
 			// Try to use the freed memory:
-			flushMemoryQueue();
+			//flushMemoryQueue();
 			// Update statistics
-			p.updateStatistics(statistics);
+			//p.updateStatistics(statistics);
 
 			// Check for more free memory
 			p = memory.checkMemory(clock);
@@ -165,11 +166,11 @@ public class Simulator implements Constants
 	 */
 	private void switchProcess() {
         Process p = cpu.returnActiveProcess();
-        if(cpu.insertProcess(p)){
+        if(cpu.insertProcess(p, clock, gui)){
             setProcessActive(p);
         }
         else{
-            Process pNew = cpu.updateActive();
+            Process pNew = cpu.updateActive(clock, gui);
             setProcessActive(pNew);
         }
 
@@ -183,7 +184,8 @@ public class Simulator implements Constants
 	private void endProcess() {
         Process p = cpu.returnActiveProcess();
         memory.processCompleted(p);
-        Process pNew = cpu.updateActive();
+		p.leftCpu(clock);
+        Process pNew = cpu.updateActive(clock, gui);
         setProcessActive(pNew);
 
 
@@ -197,11 +199,12 @@ public class Simulator implements Constants
 	 */
 	private void processIoRequest() {
         Process p = cpu.returnActiveProcess();
-        if(io.insertProcess(p)){
-            long endOfIOTime = p.getIOTime();
+		p.leftCpu(clock);
+        if(io.insertProcess(p, clock, gui)){
+            long endOfIOTime = clock + 1 + (long)(2*Math.random()*avgIoTime);
             eventQueue.insertEvent(new Event(END_IO, endOfIOTime));
         }
-        Process pNew = cpu.updateActive();
+        Process pNew = cpu.updateActive(clock, gui);
         setProcessActive(pNew);
 
 
@@ -213,14 +216,14 @@ public class Simulator implements Constants
 	 * is done with its I/O operation.
 	 */
 	private void endIoOperation() {
-        Process[] processArray = io.returnActiveProcess();
+        Process[] processArray = io.returnActiveProcess(clock, gui);
         if(processArray[1]!=null){
-            long endOfIOTime = processArray[1].getIOTime();
+            long endOfIOTime = clock + 1 + (long)(2*Math.random()*avgIoTime);
             eventQueue.insertEvent(new Event(END_IO, endOfIOTime));
         }
 
         /** If the cpu has no processes in the queue, the new process becomes active. Must then add the correct events  */
-        if(cpu.insertProcess(processArray[0])){
+        if(cpu.insertProcess(processArray[0], clock, gui)){
             setProcessActive(processArray[0]);
         }
         //todo update statistics

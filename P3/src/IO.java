@@ -28,13 +28,15 @@ public class IO {
      * @param p
      * @return if process is now active
      */
-    public boolean insertProcess(Process p) {
-        if(ioQueue.isEmpty()){
+    public boolean insertProcess(Process p, long clock, Gui gui) {
+        if(ioQueue.isEmpty() && activeProcess==null){
             activeProcess = p;
+            gui.setIoActive(activeProcess);
             return true;
         }
         else{
             ioQueue.insert(p);
+            p.addedIoQueue(clock);
             return false;
         }
 
@@ -57,11 +59,14 @@ public class IO {
      * Returns the current active process, changes to a new process if the queue is not empty.
      * @return an array with the activeProcess, and the new active process (may be null)
      */
-    public Process[] returnActiveProcess() {
+    public Process[] returnActiveProcess(long clock, Gui gui) {
         Process returnProcess = activeProcess;
+        returnProcess.leftIo(clock);
         activeProcess = null;
         if(!ioQueue.isEmpty()){
             activeProcess = (Process)ioQueue.removeNext();
+            activeProcess.leftIoQueue(clock);
+            gui.setIoActive(activeProcess);
         }
         Process[] returnArray = {returnProcess,activeProcess};
         return returnArray;

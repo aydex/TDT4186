@@ -16,12 +16,14 @@ public class CPU {
         return activeProcess;
     }
 
-    public boolean insertProcess(Process process) {
-        if(cpuQueue.isEmpty()){
+    public boolean insertProcess(Process process, long clock, Gui gui) {
+        if(cpuQueue.isEmpty() && activeProcess==null){
             activeProcess = process;
+            gui.setCpuActive(activeProcess);
             return true;
         }
         cpuQueue.insert(process);
+        process.addedCpuQueue(clock);
         return false;
     }
 
@@ -30,11 +32,14 @@ public class CPU {
      * Sets a new active process
      * @return
      */
-    public Process updateActive() {
+    public Process updateActive(long clock, Gui gui) {
         if(cpuQueue.isEmpty()){
             return null;
         }
-        activeProcess = (Process)cpuQueue.getNext();
+        //Should it be removeNext or getNext? (Odd)
+        activeProcess = (Process)cpuQueue.removeNext();
+        activeProcess.leftCpuQueue(clock);
+        gui.setCpuActive(activeProcess);
         return activeProcess;
     }
 }

@@ -120,13 +120,11 @@ public class Process implements Constants
 
 	// Add more methods as needed
 
-    //todo finne ut hvor lang tid IO utføring skal ta, Martin: "Jeg har ikke sett noe sted i oppgaven hvor tiden er oppgitt"
+    //todo finne ut hvor lang tid IO utforing skal ta, Martin: "Jeg har ikke sett noe sted i oppgaven hvor tiden er oppgitt"
+	//Tror ikke denne metoden trengs (Odd)
     public long getIOTime(){
         return 0;
     }
-
-
-
 
     public long getTimeUntilNextIO(){
         return timeToNextIoOperation;
@@ -135,4 +133,36 @@ public class Process implements Constants
     public long getcpuTimeNeeded(){
         return cpuTimeNeeded;
     }
+
+	public void leftCpuQueue(long clock){
+		timeSpentInReadyQueue += clock - timeOfLastEvent;
+		timeOfLastEvent = clock;
+		timeToNextIoOperation = clock + avgIoInterval;
+	}
+
+	public void leftIoQueue(long clock){
+		timeSpentWaitingForIo += clock - timeOfLastEvent;
+		timeOfLastEvent = clock;
+	}
+
+	public void leftCpu(long clock){
+		cpuTimeNeeded -= clock - timeOfLastEvent;
+		timeSpentInCpu += clock - timeOfLastEvent;
+		timeOfLastEvent = clock;
+	}
+
+	public void leftIo(long clock){
+		timeSpentInIo += clock - timeOfLastEvent;
+		timeOfLastEvent = clock;
+	}
+
+	public void addedCpuQueue(long clock){
+		nofTimesInReadyQueue++;
+		timeOfLastEvent = clock;
+	}
+
+	public void addedIoQueue(long clock){
+		nofTimesInIoQueue++;
+		timeOfLastEvent = clock;
+	}
 }
